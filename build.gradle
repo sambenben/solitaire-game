@@ -1,0 +1,13 @@
+// 项目级 build.gradle
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.0'
+    }
+}
+
+// 注意：不在 root build.gradle 中声明 allprojects
+// 仓库由 settings.gradle 统一管理
