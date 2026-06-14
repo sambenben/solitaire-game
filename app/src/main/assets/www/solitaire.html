@@ -19,7 +19,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 6px 4px 20px;
+  padding: 2px 2px 12px;
   user-select: none;
   -webkit-user-select: none;
   overflow-x: hidden;
@@ -32,7 +32,7 @@ body {
   max-width: 540px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 /* ===== 顶部栏 ===== */
@@ -46,9 +46,12 @@ body {
   color: #d4c598;
 }
 .header .title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
 }
 .stats {
   display: flex;
@@ -119,12 +122,12 @@ body {
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 6px;
+  gap: 4px;
+  padding: 3px;
 }
 .collect-slot {
-  width: 56px;
-  height: 74px;
+  width: 48px;
+  height: 62px;
   border: 2px dashed rgba(255,255,255,0.2);
   border-radius: 6px;
   display: flex;
@@ -149,8 +152,8 @@ body {
 }
 .collect-slot .top-card {
   position: absolute;
-  width: 46px;
-  height: 62px;
+  width: 40px;
+  height: 52px;
   background: #fffef5;
   border: 1px solid #bbb;
   border-radius: 4px;
@@ -164,8 +167,8 @@ body {
   top: 5px;
   box-shadow: 1px 2px 4px rgba(0,0,0,0.3);
 }
-.collect-slot .top-card .csuit { font-size: 15px; line-height: 1; }
-.collect-slot .top-card .crank { font-size: 13px; line-height: 1; margin-top: 1px; }
+.collect-slot .top-card .csuit { font-size: 18px; line-height: 1; }
+.collect-slot .top-card .crank { font-size: 16px; line-height: 1; margin-top: 1px; }
 .collect-slot.collect-ready {
   outline: 3px solid #6bc97a;
   outline-offset: -3px;
@@ -184,7 +187,7 @@ body {
 .play-area {
   flex: 1;
   display: flex;
-  gap: 3px;
+  gap: 1px;
   justify-content: center;
 }
 
@@ -248,8 +251,8 @@ body {
 }
 .card.face-up .card-corner {
   position: absolute;
-  top: 4px;
-  left: 5px;
+  top: 2px;
+  left: 3px;
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -257,13 +260,13 @@ body {
   line-height: 1.1;
 }
 .card.face-up .card-corner .rank {
-  font-size: 15px;
+  font-size: 22px;
   font-weight: bold;
   line-height: 1.1;
   font-family: inherit;
 }
 .card.face-up .card-corner .symbol {
-  font-size: 20px;
+  font-size: 28px;
   line-height: 1.1;
   margin-top: -2px;
 }
@@ -274,10 +277,10 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1;
-  padding-top: 24px;
+  padding-top: 30px;
 }
 .card.face-up .card-center .watermark {
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 1px;
   opacity: 0.40;
   pointer-events: none;
@@ -296,7 +299,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 90px;
+    font-size: 110px;
     line-height: 1;
     pointer-events: none;
     z-index: 0;
@@ -313,7 +316,7 @@ body {
     position: absolute;
     bottom: 5px;
     right: 7px;
-    font-size: 16px;
+    font-size: 20px;
     line-height: 1;
     pointer-events: none;
     z-index: 2;
@@ -990,9 +993,9 @@ function render() {
 }
 
 function getCardHeight() {
-  // 根据窗口宽度估算牌高
+  // 根据窗口宽度估算牌高，手机端优先保证可读性
   const w = window.innerWidth;
-  return Math.max(60, Math.min(82, Math.round((w - 40) / 7 * 0.82)));
+  return Math.max(78, Math.min(105, Math.round((w - 16) / 7 * 1.45)));
 }
 
 function renderCollectArea() {
@@ -1035,8 +1038,8 @@ function renderPlayArea() {
   const container = document.getElementById('playArea');
   container.innerHTML = '';
   const cardH = getCardHeight();
-  const faceDownOffset = Math.round(cardH * 0.11);
-  const faceUpOffset = Math.round(cardH * 0.45);
+  const faceDownOffset = Math.round(cardH * 0.10);
+  const faceUpOffset = Math.round(cardH * 0.50);
 
   for (let colIdx=0; colIdx<7; colIdx++) {
     const columnDiv = document.createElement('div');
@@ -1126,6 +1129,17 @@ function tryMove(fromCol, fromIdx, toCol) {
 function select(colIdx, cardIdx) { selected={col:colIdx,cardIdx}; render(); }
 function deselect() { selected=null; render(); }
 
+// 检查从 fromIdx 到列尾是否构成有效的同花色降序移动单元
+function isValidMovableUnit(col, fromIdx) {
+  for (let i = fromIdx; i < col.length - 1; i++) {
+    if (!col[i].faceUp || !col[i+1].faceUp) return false;
+    if (col[i].suit !== col[i+1].suit) return false;
+    const expected = col[i].rank === 1 ? 13 : col[i].rank - 1;
+    if (col[i+1].rank !== expected) return false;
+  }
+  return col[fromIdx].faceUp;
+}
+
 function getMoveFailReason(fromCol, fromIdx, toCol) {
   const col = gameState.columns[fromCol];
   if (fromCol===toCol) return '不能移到同一列';
@@ -1137,7 +1151,7 @@ function getMoveFailReason(fromCol, fromIdx, toCol) {
   // 移到空列的目的是释放暗牌或暴露下面的牌形成新连接
   // 1. 顶头（第一张亮牌）且没有暗牌 → 移空列无意义（只是搬了个位置）
   // 2. 非顶头即使没有暗牌 → 移空列有意义（暴露下面的牌）
-  // 3. maxRank在所有"可移空列的牌"中查找（排除顶头+无暗牌的牌）
+  // 3. maxRank在所有"可移空列的牌"中查找（排除顶头+无暗牌的牌，且必须是有效移动单元）
   // 4. 只能放最大rank的牌
   // 5. 同rank中：非顶头优先，没有非顶头则顶头可以放
   if (gameState.columns[toCol].length===0) {
@@ -1148,7 +1162,7 @@ function getMoveFailReason(fromCol, fromIdx, toCol) {
     if (isTopCard && !hasFaceDown) {
       return '该列没有暗牌，移到空列无意义';
     }
-    // 规则2：在所有"可移空列的牌"中找最大rank（排除顶头+无暗牌的牌）
+    // 规则2：在所有"可移空列的牌"中找最大rank（排除无效的，排除顶头+无暗牌的牌）
     let maxRank=0;
     for (let c=0;c<7;c++) {
       const bc=gameState.columns[c];
@@ -1159,6 +1173,8 @@ function getMoveFailReason(fromCol, fromIdx, toCol) {
         if (!bc[i].faceUp) continue;
         // 排除顶头+无暗牌的牌（它们不能移空列）
         if (i===fu && !bcHasFaceDown) continue;
+        // 排除不是有效移动单元的牌（被锁定在同花色组列中间，无法单独/连同移动）
+        if (!isValidMovableUnit(bc, i)) continue;
         if (bc[i].rank>maxRank) maxRank=bc[i].rank;
       }
     }
@@ -1179,6 +1195,8 @@ function getMoveFailReason(fromCol, fromIdx, toCol) {
           if (!bc[i].faceUp || bc[i].rank!==maxRank) continue;
           // 排除顶头+无暗牌的牌
           if (i===fu && !bcHasFaceDown) continue;
+          // 排除不是有效移动单元的牌
+          if (!isValidMovableUnit(bc, i)) continue;
           if (i!==fu) { // 非顶头
             nonTopMaxCards.push({col:c,suit:bc[i].suit,rank:bc[i].rank});
           }
