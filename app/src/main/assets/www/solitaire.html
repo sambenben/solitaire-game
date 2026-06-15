@@ -1148,14 +1148,13 @@ function replayCalcCardHeight(snapshot) {
     const overlayH = window.innerHeight;
     availableH = Math.max(160, overlayH - 180);
   }
-  // 找到最高列的高度比例
+  // 找到最高列的高度比例（用0.55代替0.50，对齐getFaceUpOffset）
   let maxRatio = 1;
   for (let colIdx = 0; colIdx < 7; colIdx++) {
     const cards = snapshot.columns[colIdx];
     let fu = 0, fd = 0;
     for (let c of cards) { if (c.faceUp) fu++; else fd++; }
-    // 列高度 = cardH + (fu-1)*0.5*cardH + fd*0.1*cardH
-    const ratio = 1 + Math.max(0, fu - 1) * 0.50 + fd * 0.10;
+    const ratio = 1 + Math.max(0, fu - 1) * 0.55 + fd * 0.12;
     if (ratio > maxRatio) maxRatio = ratio;
   }
   if (maxRatio <= 0) return getCardHeight();
@@ -1169,8 +1168,8 @@ function replayRenderPlayArea(snapshot) {
   container.innerHTML = '';
 
   const cardH = replayCalcCardHeight(snapshot);
-  const faceDownOffset = Math.round(cardH * 0.10);
-  const faceUpOffset = Math.round(cardH * 0.50);
+  const faceDownOffset = getFaceDownOffset(cardH);
+  const faceUpOffset = getFaceUpOffset(cardH);
 
   for (let colIdx = 0; colIdx < 7; colIdx++) {
     const columnDiv = document.createElement('div');
@@ -1201,7 +1200,10 @@ function replayRenderPlayArea(snapshot) {
         if (card.faceUp) {
           const color = SUIT_COLORS[card.suit];
           const wm = CARD_WATERMARKS[card.suit][(card.rank - 1) % 13];
-          cardDiv.innerHTML = `<div class="card-corner top-left" style="color:${color}"><span class="rank">${getRankDisplay(card.rank)}</span><span class="symbol">${SUIT_SYMBOLS[card.suit]}</span></div><div class="card-center"><span class="watermark" style="color:${color}">${wm}</span></div>`;
+          const rankFS = cardH < 90 ? '16px' : '22px';
+          const symFS = cardH < 90 ? '18px' : '28px';
+          const wmFS = cardH < 90 ? '10px' : '13px';
+          cardDiv.innerHTML = `<div class="card-corner top-left" style="color:${color}"><span class="rank" style="font-size:${rankFS}">${getRankDisplay(card.rank)}</span><span class="symbol" style="font-size:${symFS}">${SUIT_SYMBOLS[card.suit]}</span></div><div class="card-center" style="padding-top:${Math.round(cardH*0.38)}px"><span class="watermark" style="color:${color};font-size:${wmFS}">${wm}</span></div>`;
         } else {
           cardDiv.innerHTML = '<div class="card-inner">乾</div>';
         }
@@ -1591,6 +1593,21 @@ function getCardHeight() {
   return Math.max(78, Math.min(105, Math.round((w - 16) / 7 * 1.45)));
 }
 
+// 根据牌高计算合适的亮牌偏移（确保能看到rank+花色符号）
+function getFaceUpOffset(cardH) {
+  // 牌角标需要约 cardH*0.38 的高度来完整显示 rank + suit
+  // 桌面(105px): 52px 偏移 > 40px 需求 ✓
+  // 手机(78px): 需要至少 30px，50%=39px 勉强，改用55%
+  const minVisible = Math.round(cardH * 0.38); // rank+suit 需要的高度
+  const offset = Math.max(minVisible + 2, Math.round(cardH * 0.55));
+  return offset;
+}
+
+// 根据牌高计算合适的暗牌偏移
+function getFaceDownOffset(cardH) {
+  return Math.max(6, Math.round(cardH * 0.12));
+}
+
 function renderCollectArea() {
   const container = document.getElementById('collectArea');
   const slots = container.querySelectorAll('.collect-slot');
@@ -1631,8 +1648,8 @@ function renderPlayArea() {
   const container = document.getElementById('playArea');
   container.innerHTML = '';
   const cardH = getCardHeight();
-  const faceDownOffset = Math.round(cardH * 0.10);
-  const faceUpOffset = Math.round(cardH * 0.50);
+  const faceDownOffset = getFaceDownOffset(cardH);
+  const faceUpOffset = getFaceUpOffset(cardH);
 
   for (let colIdx=0; colIdx<7; colIdx++) {
     const columnDiv = document.createElement('div');
@@ -1675,7 +1692,11 @@ function renderPlayArea() {
       if (card.faceUp) {
         const color = SUIT_COLORS[card.suit];
         const wm = CARD_WATERMARKS[card.suit][card.rank-1];
-        cardDiv.innerHTML = `<div class="card-corner top-left" style="color:${color}"><span class="rank">${getRankDisplay(card.rank)}</span><span class="symbol">${SUIT_SYMBOLS[card.suit]}</span></div><div class="card-center"><span class="watermark" style="color:${color}">${wm}</span></div>`;
+        // 手机端字号自适应：牌高<90时缩小角标
+        const rankFS = cardH < 90 ? '16px' : '22px';
+        const symFS = cardH < 90 ? '18px' : '28px';
+        const wmFS = cardH < 90 ? '10px' : '13px';
+        cardDiv.innerHTML = `<div class="card-corner top-left" style="color:${color}"><span class="rank" style="font-size:${rankFS}">${getRankDisplay(card.rank)}</span><span class="symbol" style="font-size:${symFS}">${SUIT_SYMBOLS[card.suit]}</span></div><div class="card-center" style="padding-top:${Math.round(cardH*0.38)}px"><span class="watermark" style="color:${color};font-size:${wmFS}">${wm}</span></div>`;
         cardDiv.addEventListener('click', (e) => { e.stopPropagation(); onCardClick(colIdx, cardIdx); });
       } else {
         cardDiv.innerHTML = '<div class="card-inner">乾</div>';
